@@ -1,0 +1,18 @@
+{
+    "train": {
+                "img_data_dir": "img/",
+                "image_filename_pattern": "*.jpeg",
+                "data_dir": "data/",
+                "label_data_file": "trainLabels.csv"
+             },
+    "test": {
+                "img_data_dir": "img/",
+                "image_filename_pattern": "*.jpeg",
+                "data_dir": "data/",
+                "label_data_file": "trainLabels.csv"
+             },
+    "param": {
+                "batch_size": 64,
+                "lr_rate": 0.001
+             }
+}

@@ -1,0 +1,21 @@
+{
+  "common": {
+        "verbose": 4,
+        "cdir": "/Users/pankaj.petkar/dev/ret/",
+        "data_dir_path": "/Users/pankaj.petkar/dev/ret/data/",
+        "img_dir_path": "/Users/pankaj.petkar/dev/retina/kaggle/img/train/",
+        "img_filename_ext": ".jpeg"
+     },
+  "train": {
+        "label_data_file": "trainLabels.csv"
+     },
+  "test": {
+        "label_data_file": "testLabels.csv"
+     },
+  "model": {
+        "param": {
+               "batch_size": 64,
+               "lr_rate": 0.001
+           }
+     }
+}
