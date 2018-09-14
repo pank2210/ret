@@ -5,15 +5,11 @@ import numpy as np
 import pandas as pd
 import sys
 
-from tensorflow.python.keras import backend as K
-from tensorflow.python.keras.datasets.cifar import load_batch
-from tensorflow.python.keras.utils.data_utils import get_file
-
 import tensorflow as tf
 
 import config as cutil
 import json_util as jutil
-import myImg as myimg
+import myImg2 as myimg
 
 class Data(object):
   def log(self, mname, msg, level=0):
@@ -47,10 +43,13 @@ class Data(object):
     self.train_label_data_file = self.train_data_dir + self.config.getElementValue(elem_path='/train/label_data_file')
     self.log( mname, "Reading train_label_data_file[{}]".format(self.train_label_data_file), level=3)
      
-    self.img_dir_path = self.config.getElementValue(elem_path='/common/img_dir_path')
-    self.img_filename_ext = self.config.getElementValue(elem_path='/common/img_filename_ext')
+    self.img_dir_path = self.config.getElementValue(elem_path='/img/img_dir_path')
+    self.img_filename_ext = self.config.getElementValue(elem_path='/img/img_filename_ext')
+    self.img_width = self.config.getElementValue(elem_path='/img/img_width')
+    self.img_heigth = self.config.getElementValue(elem_path='/img/img_heigth')
     self.log( mname, "Images will be read from [{}]".format(self.img_dir_path), level=3)
     self.log( mname, "Image file extension [{}]".format(self.img_filename_ext), level=3)
+    self.log( mname, "Image width [{}] heigth [{}]".format(self.img_width,self.img_heigth), level=3)
    
   def load_train_data(self):
     mname = "load_train_data"
@@ -70,8 +69,8 @@ class Data(object):
     self.df['imgexists'] = False
      
     #initialize all variables... 
-    n_img_w = 3000
-    n_img_h = 5000
+    n_img_w = self.img_width
+    n_img_h = self.img_heigth
      
     x_train = np.empty(( 0, n_img_w, n_img_h, 3), dtype='uint8')
     x_img_buf = np.empty(( 1, n_img_w, n_img_h, 3), dtype='uint8')
@@ -84,31 +83,37 @@ class Data(object):
      
     #loop in through dataframe. 
     for i,rec in self.df.iterrows():
-      #if cnt > 50:
-      #  break
+      if cnt > 50:
+        break
+       
       progress_sts = "%6d out of %6d" % (cnt,tot_cnt)
       sys.stdout.write("%6d out of %6d" % (cnt,tot_cnt))
       sys.stdout.write("\b" * len(progress_sts)) # return to start of line, after '['
       sys.stdout.flush()
-
        
       imgpath = self.img_dir_path + rec.image + self.img_filename_ext 
       self.df.loc[i,'imgpath'] = imgpath
        
       if os.path.exists(imgpath):
         myimg1 = myimg.myImg( imageid=str(i), config=self.myImg_config, path=imgpath) 
-        croped_img = tf.image.resize_image_with_crop_or_pad( myimg1.getImage(), n_img_w, n_img_h)
          
+        i_w, i_h = myimg1.getImageDim() 
+        croped_img_arr = np.zeros((n_img_w,n_img_h,3),dtype='uint8') 
+        calc_img_w_offset = int((n_img_w - i_w)/2)
+        calc_img_h_offset = int((n_img_h - i_h)/2)
+        croped_img_arr[ calc_img_w_offset:(calc_img_w_offset + i_w), calc_img_h_offset:(calc_img_h_offset + i_h), :] = myimg1.getImage()
+         
+        ''' 
+        croped_img = tf.image.resize_image_with_crop_or_pad( myimg1.getImage(), n_img_w, n_img_h)
         init = tf.global_variables_initializer()
         croped_img_arr = 0
         with tf.Session() as sess:
           sess.run(init)
           croped_img_arr = sess.run(croped_img)
-          '''
           print(v.shape,type(v))  # will show you your variable.
           v = np.reshape( v, ( n_img_w, n_img_h, 3))
           print(v.shape,type(v))  # will show you your variable.
-          '''
+        ''' 
          
         x_img_buf[ 0, :, :, :] = croped_img_arr
          
@@ -144,64 +149,6 @@ class Data(object):
     #print(self.df.head(10))
     self.df.to_csv( self.train_data_dir + 'u_img_set.csv')
      
-def prep_data():
-  """Loads CIFAR10 dataset.
-
-  Returns:
-      Tuple of Numpy arrays: `(x_train, y_train), (x_test, y_test)`.
-  """
-  print("##data_prep called...")
-  i_cdir = "../../"
-  i_imgpath = "1000_left.jpeg"
-  config = cutil.Config(configid="myConfId",cdir=i_cdir)
-  img1 = myimg.myImg(imageid="xx",config=config,ekey='x123',path=i_imgpath)
-  img1.printImageProp()
-  
-  train_samples = 1 
-  w, h = img1.getImageDim()
-  #x_train1 = np.empty(( train_samples, 3, w, h), dtype='uint8')
-  x_train1 = np.empty(( train_samples, w, h, 3), dtype='uint8')
-  print(" x_train1 size [{}]".format(x_train1.shape))
-  x_train1[ 0, :, :, :] = img1.getImage()
-  print(" x_train1 size [{}]".format(x_train1.shape))
-  #x_train1 = x_train1.transpose(0, 2, 3, 1)
-  #print(" x_train1 size [{}]".format(x_train1.shape))  
-  
-   
-  dirname = 'cifar-10-batches-py'
-  #./.keras/datasets/cifar-10-batches-py.tar.gz
-  origin = 'https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz'
-  origin = 'file://Users/pankaj.petkar/.keras/datasets/cifar-10-batches-py.tar.gz'
-  path = get_file(dirname, origin=origin, untar=True)
-
-  num_train_samples = 50000
-
-  x_train = np.empty((num_train_samples, 3, 32, 32), dtype='uint8')
-  y_train = np.empty((num_train_samples,), dtype='uint8')
-
-  for i in range(1, 6):
-    fpath = os.path.join(path, 'data_batch_' + str(i))
-    (x_train[(i - 1) * 10000:i * 10000, :, :, :],
-     y_train[(i - 1) * 10000:i * 10000]) = load_batch(fpath)
-
-  print(x_train.shape)
-  print(y_train.shape)
-
-  fpath = os.path.join(path, 'test_batch')
-  x_test, y_test = load_batch(fpath)
-
-  y_train = np.reshape(y_train, (len(y_train), 1))
-  y_test = np.reshape(y_test, (len(y_test), 1))
-
-  if K.image_data_format() == 'channels_last':
-    x_train = x_train.transpose(0, 2, 3, 1)
-    x_test = x_test.transpose(0, 2, 3, 1)
-   
-  print(x_train.shape)
-  print(y_train.shape)
-
-  return (x_train, y_train), (x_test, y_test)
-
 if __name__ == "__main__":
   #prep_data()
   data = Data()

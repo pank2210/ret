@@ -1,9 +1,13 @@
 {
   "common": {
         "verbose": 4,
-        "cdir": "/Users/pankaj.petkar/dev/ret/",
-        "data_dir_path": "/Users/pankaj.petkar/dev/ret/data/",
-        "img_dir_path": "/Users/pankaj.petkar/dev/retina/kaggle/img/train/",
+        "cdir": "/home/nimbix/dev/ret/",
+        "data_dir_path": "/home/nimbix/dev/ret/data/"
+     },
+  "img": {
+        "img_width": 3500,
+        "img_heigth": 5000,
+        "img_dir_path": "/tmp/data/img/train/",
         "img_filename_ext": ".jpeg"
      },
   "train": {
