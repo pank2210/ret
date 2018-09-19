@@ -35,16 +35,17 @@ class myImg(object):
       #img param which is numpy image array takes precedence over path 
       #If path is passed along with img then path will be overwritten with img content as .jpg
       if type(img).__name__ != self.config.typeNone: #img is passed so use it.
+         #print("##generating image from image array...")
          self.img = img
          if path is None: #construct if path doesn't exists when img is passed.
             self.imgpath = self.config.odir + 'img_' + self.id + '.jpg'
          else:
-            self.imgpath = self.config.odir + path
+            #self.imgpath = self.config.odir + path
             if os.path.isfile(path):
               self.imgpath = path
             else:
               self.imgpath = self.config.odir + path
-         #misc.imwrite( self.imgpath, img) #since img is passed, persist it in config.odir
+         #misc.imsave( self.imgpath, img) #since img is passed, persist it in config.odir
       else: #path is passed, so use it to build img
          #check if mandatory param are passed. 
          if type(path).__name__ == self.config.typeNone:
@@ -103,7 +104,7 @@ class myImg(object):
       if k == 27:         # wait for ESC key to exit
          misc.destroyAllWindows()
       elif k == ord('s'): # wait for 's' key to save and exit
-         #misc.imwrite('o.png',self.img)
+         #misc.imsave('o.png',self.img)
          misc.destroyAllWindows()
 
    def printPixel(self,x,y):
@@ -178,22 +179,24 @@ class myImg(object):
       ofile = ""
        
       if gen_new_filename:
-        m1 = re.search("(^.*?)\.(\w{3})$",self.i_img_file_name)
+        #print("##i_img_file_name[{}]".format(self.i_img_file_name))
+        m1 = re.search("(^.*?)\.(\w+)$",self.i_img_file_name)
         ofile = self.config.odir + m1.group(1) + '_u' + img_type_ext
       else:
         ofile = self.config.odir + 'cntr_' + self.id + img_type_ext
        
       if type(img).__name__ != self.config.typeNone: #img is passed so use it.
         #print("saveImage: Saving override Image.")
-        misc.imwrite( ofile, img)
+        misc.imsave( ofile, img)
       else:
-        misc.imwrite( ofile, self.getImage())
+        #print("##image shape[{}]".format(self.getImage().shape))
+        misc.imsave( ofile, self.getImage())
 
    def writeDictImages(self):
       imagekeys = self.imgdict.keys()
       for imagekey in imagekeys:
          ofile = self.config.odir + self.id + '_' + imagekey + '.jpg'
-         misc.imwrite( ofile ,self.imgdict.get(imagekey))
+         misc.imsave( ofile ,self.imgdict.get(imagekey))
 
    def imageAveraging(self,neig,img):
       mname = 'imageAveraging' 
@@ -416,11 +419,12 @@ def main(argv):
 
    config = cutil.Config(configid="myConfId",cdir=i_cdir)
    img1 = myImg(imageid="xx",config=config,ekey='x123',path=i_imgpath)
-   #img2 = myImg(imageid="myImgId2",config=config,ekey='x123',path=None,img = img1.getMorphGradientImage())
+   img2 = myImg(imageid="myImgId2",config=config,ekey='x123',path=None,img = img1.getImage())
    img1.printImageProp()
    #img1.showImageAndHistogram()
    #img1.add_text( "FileName: " + i_imgpath, x=200, y=70, image_scale=10)
-   #img2.printImageProp()
+   img2.printImageProp()
+   img2.saveImage()
    '''
    img1.getHorizontalDialtedImageWithRect()
    img1.getGBinaryImage(fromimagekey="emorphgradient")

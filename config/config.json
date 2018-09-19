@@ -8,6 +8,7 @@
         "img_width": 3500,
         "img_heigth": 5000,
         "img_dir_path": "/tmp/data/img/train/",
+        "img_croped_dir_path": "/tmp/data/img/croped/",
         "img_filename_ext": ".jpeg"
      },
   "train": {

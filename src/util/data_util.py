@@ -44,6 +44,7 @@ class Data(object):
     self.log( mname, "Reading train_label_data_file[{}]".format(self.train_label_data_file), level=3)
      
     self.img_dir_path = self.config.getElementValue(elem_path='/img/img_dir_path')
+    self.img_croped_dir_path = self.config.getElementValue(elem_path='/img/img_croped_dir_path')
     self.img_filename_ext = self.config.getElementValue(elem_path='/img/img_filename_ext')
     self.img_width = self.config.getElementValue(elem_path='/img/img_width')
     self.img_heigth = self.config.getElementValue(elem_path='/img/img_heigth')
@@ -60,7 +61,7 @@ class Data(object):
     #create & set all myImg Config 
     self.myImg_config = cutil.Config(configid="myConfId",cdir=self.cdir)
     self.myImg_config.setDdir( self.train_data_dir)
-    self.myImg_config.setOdir( self.train_data_dir)
+    self.myImg_config.setOdir( self.img_croped_dir_path)
     self.myImg_config.setIdir( self.img_dir_path)
      
     self.df['h'] = 0
@@ -72,14 +73,14 @@ class Data(object):
     n_img_w = self.img_width
     n_img_h = self.img_heigth
      
-    x_train = np.empty(( 0, n_img_w, n_img_h, 3), dtype='uint8')
-    x_img_buf = np.empty(( 1, n_img_w, n_img_h, 3), dtype='uint8')
-    y_buf = []
-    y_train = np.empty((0,1),dtype='uint8')
-     
     tot_cnt = self.df['level'].count()
     cnt = 0
     file_missing = 0
+     
+    x_train = np.zeros(( tot_cnt, n_img_w, n_img_h, 3), dtype='uint8')
+    x_img_buf = np.empty(( 1, n_img_w, n_img_h, 3), dtype='uint8')
+    y_buf = []
+    y_train = np.empty((0,1),dtype='uint8')
      
     #loop in through dataframe. 
     for i,rec in self.df.iterrows():
@@ -115,21 +116,25 @@ class Data(object):
           print(v.shape,type(v))  # will show you your variable.
         ''' 
          
-        x_img_buf[ 0, :, :, :] = croped_img_arr
+        #x_img_buf[ 0, :, :, :] = croped_img_arr
          
-        '''#use below block of code to debug croped image with original.
+        #'''#use below block of code to debug croped image with original.
         #myimg1.showImage()
-        myimg1.saveImage(img_type_ext='.jpeg',gen_new_filename=False)
-        myimg2 = myimg.myImg( imageid='X1', config=self.myImg_config, path=None, img=croped_img_arr) 
-        myimg2.saveImage(img_type_ext='.jpeg',gen_new_filename=False)
-        '''
+        #myimg1.saveImage(img_type_ext='.jpeg',gen_new_filename=False)
+        #myimg2 = myimg.myImg( imageid=str(i), config=self.myImg_config, path=rec.image+self.img_filename_ext, img=croped_img_arr) 
+        #myimg2.saveImage(img_type_ext='.jpeg',gen_new_filename=True)
+        #myimg2.saveImage()
+        #'''
          
         #self.log( mname, "Croped Image [{}] [{}] [{}] [{}]".format(myimg1.getImage().shape,croped_img_arr.shape,x_train.shape,x_img_buf.shape), level=4)
-        x_train = np.vstack( (x_train, x_img_buf))
+         
+        #x_train = np.vstack( (x_train, x_img_buf))
+        x_train[cnt,:,:,:] = croped_img_arr
         y_buf.append(rec.level)
          
         self.df.loc[i,'imgexists'] = True
         self.df.loc[i,'w'], self.df.loc[i,'h'] = myimg1.getImageDim()
+        self.df.loc[i,'_w'], self.df.loc[i,'_h'] = croped_img_arr.shape[0],croped_img_arr.shape[1]
         #self.log( mname, "Image file [{}] doesn't exists!!!".format(imgpath), level=2)
       else:
         #self.log( mname, "Image file [{}] doesn't exists!!!".format(imgpath), level=2)
