@@ -9,7 +9,7 @@ from pprint import pprint
 class JsonUtil:
   #json file handling utility class
   
-  def __init__(self, jfilepath="../../config/config.json"):
+  def __init__(self, jfilepath="../config/config.json"):
     print("##json_util::init() file[{}]".format(jfilepath))
     
     #self.jfd = open('connection.json', 'r')
@@ -39,5 +39,6 @@ class JsonUtil:
   
 if __name__ == "__main__":
   ju = JsonUtil(jfilepath = '../../config/config.json')
-  print(ju.getElement(elem_path='train/img_dir_path'))
+  print(ju.getElement(elem_path='/common/verbose'))
+  print(ju.getElement(elem_path='/model/param/batch_size'))
 

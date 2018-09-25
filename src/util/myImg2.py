@@ -142,7 +142,44 @@ class myImg(object):
         self.logger.log('        image[{}] - size[{}] shape[{}]'.format(imagekey,self.imgdict.get(imagekey).size,self.imgdict.get(imagekey).shape))
       #self.logger.log('----------------------------------------------------')
 
+   def getGreyScaleImage(self,convertFlag = False):
+      if self.channels == 3:
+        if convertFlag:
+          self.img = np.average( self.img, axis=2)
+          self.setImageMetadata()
+           
+          return self.img
+        else:
+           
+          return np.average( self.img, axis=2)
+      else:
+        #for existing single channel system, return img as is 
+        return self.img
 
+   def padImage( self, n_img_w, n_img_h):
+      i_w, i_h = self.getImageDim() 
+      if n_img_w <= i_w & n_img_h <= i_h:
+        print("##incorrect padding, either given width or height is less then expected!!!")
+        print("##i_w[{}] i_h[{}] n_img_w[{}] n_img_h[{}}".format(i_w,i_h,n_img_w,n_img_h))
+         
+        return False
+       
+      calc_img_w_offset = int((n_img_w - i_w)/2)
+      calc_img_h_offset = int((n_img_h - i_h)/2)
+      
+      if self.channels == 3:
+        croped_img_arr = np.zeros((n_img_w,n_img_h,self.channels),dtype='uint8') 
+        croped_img_arr[ calc_img_w_offset:(calc_img_w_offset + i_w), calc_img_h_offset:(calc_img_h_offset + i_h), :] = self.getImage()
+      else:
+        croped_img_arr = np.zeros((n_img_w,n_img_h),dtype='uint8') 
+        croped_img_arr[ calc_img_w_offset:(calc_img_w_offset + i_w), calc_img_h_offset:(calc_img_h_offset + i_h)] = self.getImage()
+       
+      self.img = None
+      self.img = croped_img_arr
+      self.setImageMetadata()
+       
+      return True   
+    
    def showImageAndHistogram(self):
       #prepare keys for iterating all dictionary images.
       imagekeys = self.imgdict.keys()
@@ -180,8 +217,15 @@ class myImg(object):
        
       if gen_new_filename:
         #print("##i_img_file_name[{}]".format(self.i_img_file_name))
-        m1 = re.search("(^.*?)\.(\w+)$",self.i_img_file_name)
-        ofile = self.config.odir + m1.group(1) + '_u' + img_type_ext
+        imgpath = ''
+        img_file_name = self.i_img_file_name.split("/") 
+        if len(img_file_name) > 1:
+           imgpath = img_file_name[-1]
+        else:
+           imgpath = img_file_name[0]
+        m1 = re.search("(^.*?)\.(\w+)$",imgpath)
+        #ofile = self.config.odir + m1.group(1) + '_u' + img_type_ext
+        ofile = self.config.odir + m1.group(1) + img_type_ext
       else:
         ofile = self.config.odir + 'cntr_' + self.id + img_type_ext
        
@@ -419,12 +463,15 @@ def main(argv):
 
    config = cutil.Config(configid="myConfId",cdir=i_cdir)
    img1 = myImg(imageid="xx",config=config,ekey='x123',path=i_imgpath)
-   img2 = myImg(imageid="myImgId2",config=config,ekey='x123',path=None,img = img1.getImage())
+   img1.saveImage()
    img1.printImageProp()
    #img1.showImageAndHistogram()
    #img1.add_text( "FileName: " + i_imgpath, x=200, y=70, image_scale=10)
-   img2.printImageProp()
+   img2 = myImg(imageid="myImgId2",config=config,ekey='x123',path=None,img = img1.getImage())
+   img2.getGreyScaleImage(convertFlag=True)
+   img2.padImage(n_img_w=3500,n_img_h=5200)
    img2.saveImage()
+   img2.printImageProp()
    '''
    img1.getHorizontalDialtedImageWithRect()
    img1.getGBinaryImage(fromimagekey="emorphgradient")

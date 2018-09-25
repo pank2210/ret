@@ -5,9 +5,11 @@
         "data_dir_path": "/home/nimbix/dev/ret/data/"
      },
   "img": {
+        "channels": 3,
+        "img_processing_capacity": 1000,
         "img_width": 3500,
         "img_heigth": 5000,
-        "img_dir_path": "/tmp/data/img/train/",
+        "img_dir_path": "/tmp/data/img/croped/",
         "img_croped_dir_path": "/tmp/data/img/croped/",
         "img_filename_ext": ".jpeg"
      },
@@ -19,6 +21,9 @@
      },
   "model": {
         "param": {
+               "random_seed": 1001,
+               "training_dataset_ratio": 0.9,
+               "validation_dataset_ratio": 0.05,
                "batch_size": 64,
                "lr_rate": 0.001
            }

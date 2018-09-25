@@ -1,7 +1,10 @@
 
 import sys
 
-import logger as util
+
+sys.path.append('../')
+
+from util import logger as lutil
 
 class Config:
   #init configuration
@@ -12,7 +15,7 @@ class Config:
     else:
       self.cdir = cdir
     self.logFileName = '/tmp/' + self.id + '.log'
-    self.logger = util.myLogger(logFileName=self.logFileName)
+    self.logger = lutil.myLogger(logFileName=self.logFileName)
     self.logger.log('Config[{}] initialize. logFileName[{}]'.format(self.id,self.logFileName))
     
     #initialize various diretories.
