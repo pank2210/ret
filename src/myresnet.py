@@ -23,6 +23,7 @@ from keras.models import Model
 from keras.datasets import cifar10
 import numpy as np
 import os
+from sys import getsizeof
 
 from util import data_util as du
 
@@ -73,6 +74,9 @@ model_type = 'ResNet%dv%d' % (depth, version)
 input_shape = x_train.shape[1:]
 
 # Normalize data.
+print(x_train.shape)
+print(x_train.dtype)
+print(getsizeof(x_train))
 x_train = x_train.astype('float32') / 255
 x_test = x_test.astype('float32') / 255
 

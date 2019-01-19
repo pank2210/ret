@@ -1,16 +1,16 @@
 {
   "common": {
         "verbose": 4,
-        "cdir": "/home/nimbix/dev/ret/",
-        "data_dir_path": "/home/nimbix/dev/ret/data/"
+        "cdir": "/data1/ret1/ret/",
+        "data_dir_path": "/data1/ret1/ret/data/"
      },
   "img": {
         "channels": 3,
         "img_processing_capacity": 1000,
         "img_width": 3500,
         "img_heigth": 5000,
-        "img_dir_path": "/tmp/data/img/croped/",
-        "img_croped_dir_path": "/tmp/data/img/croped/",
+        "img_dir_path": "/data1/ret1/dataset/data/img/croped/",
+        "img_croped_dir_path": "/data1/ret1/dataset/data/img/croped/",
         "img_filename_ext": ".jpeg"
      },
   "train": {

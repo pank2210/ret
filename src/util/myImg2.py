@@ -142,6 +142,22 @@ class myImg(object):
         self.logger.log('        image[{}] - size[{}] shape[{}]'.format(imagekey,self.imgdict.get(imagekey).size,self.imgdict.get(imagekey).shape))
       #self.logger.log('----------------------------------------------------')
 
+   def getGreyScaleImage2(self,convertFlag = False):
+      if self.channels == 3:
+        if convertFlag:
+          #self.img = np.average( self.img, axis=2)
+          self.img = self.img[:,:,0] * .2989 + self.img[:,:,1] * .5870 + self.img[:,:,2] * .1140
+          self.setImageMetadata()
+           
+          return self.img
+        else:
+           
+          #return np.average( self.img, axis=2)
+          return self.img[:,:,0] * .2989 + self.img[:,:,1] * .5870 + self.img[:,:,2] * .1140
+      else:
+        #for existing single channel system, return img as is 
+        return self.img
+
    def getGreyScaleImage(self,convertFlag = False):
       if self.channels == 3:
         if convertFlag:
