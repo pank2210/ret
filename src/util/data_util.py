@@ -39,6 +39,8 @@ class Data(object):
   def initialize_from_config(self):
     mname = "initialize_from_config"
      
+    self.cur_batch_offset = 0 
+    self.processing_cnt = 0 
     self.img_buf_size = None #shape of largest image unles restricted.
     self.cdir = self.config.getElementValue(elem_path='/common/cdir')
     self.train_data_dir = self.config.getElementValue(elem_path='/common/data_dir_path')
@@ -63,6 +65,9 @@ class Data(object):
      
     self.img_processing_capacity = self.config.getElementValue(elem_path='/img/img_processing_capacity')
     self.log( mname, "img_processing_capacity[{}]".format(self.img_processing_capacity), level=3)
+     
+    self.batch_size = self.config.getElementValue(elem_path='/model/param/batch_size')
+    self.log( mname, "batch_size[{}]".format(self.batch_size), level=3)
      
     self.channels = self.config.getElementValue(elem_path='/img/channels')
     self.log( mname, "channels[{}]".format(self.channels), level=3)
@@ -312,8 +317,8 @@ class Data(object):
     else:
       x_train = np.zeros(( len(train_dataset_sample), n_img_w, n_img_h, self.channels), dtype='uint8')
       x_test = np.zeros(( (tot_cnt-len(train_dataset_sample)), n_img_w, n_img_h, self.channels), dtype='uint8')
-    y_train = np.zeros((0,1),dtype='uint8')
      
+    y_train = np.zeros((0,1),dtype='uint8')
     y_test = np.zeros((0,1),dtype='uint8')
      
     #loop in through dataframe. 
@@ -383,6 +388,119 @@ class Data(object):
     #self.df.to_csv( self.train_data_dir + 'u_img_set.csv')
     
     return (x_train, y_train), (x_test, y_test)
+   
+  def initiliaze_for_batch_load(self):
+    mname = "initiliaze_for_batch_load"
+     
+    self.log( mname, "Loading Dataframe from [{}]".format(self.train_label_data_file), level=3)
+    self.df = pd.read_csv( self.train_label_data_file)
+    self.log( mname, "Loaded [{}] recs".format(self.df['level'].count()), level=3)
+     
+    #create & set all myImg Config 
+    self.myImg_config = cutil.Config(configid="myConfId",cdir=self.cdir)
+    self.myImg_config.setDdir( self.train_data_dir)
+    self.myImg_config.setOdir( self.img_croped_dir_path)
+    self.myImg_config.setIdir( self.img_dir_path)
+     
+    self.df['h'] = 0
+    self.df['w'] = 0
+    self.df['imgpath'] = ""
+    self.df['imgexists'] = False
+     
+    #generate dataset for handling train : test
+    np.random.seed(self.random_seed)
+    self.train_df = self.df.sample( frac=.7, replace=False, random_state=self.random_seed)
+    self.test_df = self.df[~self.df.index.isin(self.train_df.index)]
+    
+    self.tot_cnt = self.img_processing_capacity 
+    if self.tot_cnt == 0:
+      self.tot_cnt = self.train_df['level'].count()
+    cnt = 0
+    file_missing = 0
+     
+    print(self.train_df.head())
+    self.train_df = self.train_df.reset_index()
+    self.test_df = self.test_df.reset_index()
+    print(self.train_df.head())
+    
+
+  def get_batch(self):
+    #initialize all variables... 
+    mname = 'get_batch'
+    n_img_w = self.img_width
+    n_img_h = self.img_heigth
+     
+    #x_train = np.zeros(( tot_cnt, n_img_w, n_img_h, 3), dtype='uint8')
+    x_img_buf = np.empty(( 1, n_img_w, n_img_h), dtype='uint8')
+    x_train = None
+    y_train = None
+    x_test = None
+    y_test = None
+    y_train_buf = []
+    y_test_buf = []
+     
+    train_cnt = self.batch_size
+    if self.channels == 1:
+      x_train = np.zeros((train_cnt, n_img_w, n_img_h), dtype='uint8')
+    else:
+      x_train = np.zeros((train_cnt, n_img_w, n_img_h, self.channels), dtype='uint8')
+     
+    y_train = np.zeros((0,1),dtype='uint8')
+     
+    #loop in through dataframe. 
+    self.log( mname, "[{}] recs for training.".format(train_cnt), level=3)
+     
+    temp_df = self.train_df.sample( self.batch_size, replace=True) #, random_state=self.random_seed)
+    
+    cnt = 0
+    file_missing = 0
+    for i,rec in temp_df.iterrows():
+      #if cnt >= tot_cnt:
+      #  break
+       
+      progress_sts = "%6d out of %6d" % (cnt,self.batch_size)
+      sys.stdout.write(progress_sts)
+      sys.stdout.write("\b" * len(progress_sts)) # return to start of line, after '['
+      sys.stdout.flush()
+       
+      imgpath = self.img_dir_path + rec.image + self.img_filename_ext 
+      temp_df.loc[i,'imgpath'] = imgpath
+       
+      if os.path.exists(imgpath):
+        myimg1 = myimg.myImg( imageid=str(i), config=self.myImg_config, path=imgpath) 
+         
+        #x_img_buf[ 0, :, :] = myimg1.getImage()
+        if self.channels == 1:
+          x_train[train_cnt,:,:] = myimg1.getImage()
+        else:
+          x_train[train_cnt,:,:,:] = myimg1.getImage()
+        y_train_buf.append(rec.level)
+        print("********",rec.level)
+        #x_test = np.vstack( (x_test, x_img_buf))
+        #self.log( mname, "[{}] [{}] x_test[{}] x_img_buf[{}]".format(cnt,test_cnt,x_test.shape,x_img_buf.shape), level=2)
+         
+        #self.log( mname, "Image file [{}] doesn't exists!!!".format(imgpath), level=2)
+      else:
+        #self.log( mname, "Image file [{}] doesn't exists!!!".format(imgpath), level=2)
+        file_missing += 1
+       
+      self.processing_cnt += 1
+      cnt += 1
+      
+    #create y array as required
+    y_train = np.array( y_train_buf, dtype='uint8')
+    y_train = np.reshape( y_train, (y_train.size,1))
+    #print final dimensionf or x_train and y_train
+    self.log( mname, "x_train [{}] y_train [{}]".format(x_train.shape,y_train.shape), level=3)
+    print( mname, "####x_train [{}] y_train [{}] y_buf[{}]".format(x_train.shape,y_train.shape,len(y_train_buf)))
+      
+    self.log( mname, "Process dataset [{}]".format(cnt), level=3)
+    self.log( mname, "File missing [{}]".format(file_missing), level=3)
+    self.log( mname, "Max image width[{}] heigth[{}]".format(self.df['w'].max(),self.df['h'].max()), level=3)
+    #print(self.df.head(10))
+    #self.df.to_csv( self.train_data_dir + 'u_img_set.csv')
+    
+    return (x_train, y_train)
      
      
 if __name__ == "__main__":
@@ -390,4 +508,9 @@ if __name__ == "__main__":
   data = Data()
   #data.load_train_data()
   #data.load_data_as_greyscale()
-  data.load_img_data()
+  #data.load_img_data()
+   
+  data.initiliaze_for_batch_load()
+  for test_cnt in range(3):
+    x,y = data.get_batch()
+    print("test_cnt[{}] x[{}] y[{}]".format(test_cnt,x.shape,y.shape))
