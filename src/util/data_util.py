@@ -6,6 +6,7 @@ import pandas as pd
 import sys
 
 import tensorflow as tf
+import keras
 
 sys.path.append('../')
 
@@ -389,7 +390,7 @@ class Data(object):
     
     return (x_train, y_train), (x_test, y_test)
    
-  def initiliaze_for_batch_load(self):
+  def initialize_for_batch_load(self):
     mname = "initiliaze_for_batch_load"
      
     self.log( mname, "Loading Dataframe from [{}]".format(self.train_label_data_file), level=3)
@@ -418,12 +419,191 @@ class Data(object):
     cnt = 0
     file_missing = 0
      
-    print(self.train_df.head())
     self.train_df = self.train_df.reset_index()
     self.test_df = self.test_df.reset_index()
-    print(self.train_df.head())
+     
+    self.train_df.to_csv( "train_df.csv", index=False, header=False)
+    self.test_df.to_csv( "test_df.csv", index=False, header=False)
     
+    self.no_classes = self.train_df.level.nunique()
+     
+    return (self.train_df.level.count(), self.test_df.level.count()) 
+  
+  def get_batch_size(self):
+    return self.batch_size
+  
+  def get_input_shape(self):
+    n_img_w = self.img_width
+    n_img_h = self.img_heigth
+    
+    if self.channels == 1:
+      return np.zeros(( n_img_w, n_img_h), dtype='uint8').shape
+    else:
+      return np.zeros(( n_img_w, n_img_h, self.channels), dtype='uint8').shape
+   
+  def image_data_generator(self,mode="train"):
+    #initialize all variables... 
+    mname = 'image_data_generator'
+    
+    fd = open( mode + '_df.csv', 'r')
+    
+    while True:
+      n_img_w = self.img_width
+      n_img_h = self.img_heigth
+       
+      #x_train = np.zeros(( tot_cnt, n_img_w, n_img_h, 3), dtype='uint8')
+      x_img_buf = np.empty(( 1, n_img_w, n_img_h), dtype='uint8')
+      x_buf = None
+      y_buf = None
+      y_labels = []
+       
+      img_cnt = self.batch_size
+      if self.channels == 1:
+        x_buf = np.zeros((img_cnt, n_img_w, n_img_h), dtype='uint8')
+      else:
+        x_buf = np.zeros((img_cnt, n_img_w, n_img_h, self.channels), dtype='uint8')
+       
+      y_buf = np.zeros((0,1),dtype='uint8')
+       
+      #loop in through dataframe. 
+      self.log( mname, "[{}] recs for set.".format(img_cnt), level=3)
+       
+      cnt = 0
+      file_missing = 0
+      while cnt < img_cnt:
+        #if cnt >= tot_cnt:
+        #  break
+        
+        line = fd.readline()
+        if line == "":
+           fd.seek(0)
+           line = fd.readline()
+        line = line.strip().split(',')
+        image_id = line[0] 
+        label = line[1] 
+         
+        progress_sts = "%6d out of %6d" % (cnt,img_cnt)
+        sys.stdout.write(progress_sts)
+        sys.stdout.write("\b" * len(progress_sts)) # return to start of line, after '['
+        sys.stdout.flush()
+         
+        imgpath = self.img_dir_path + image_id + self.img_filename_ext 
+         
+        if os.path.exists(imgpath):
+          myimg1 = myimg.myImg( imageid=image_id, config=self.myImg_config, path=imgpath) 
+           
+          #x_img_buf[ 0, :, :] = myimg1.getImage()
+          if self.channels == 1:
+            x_buf[cnt,:,:] = myimg1.getImage()
+          else:
+            x_buf[cnt,:,:,:] = myimg1.getImage()
+           
+          y_labels.append(label)
+          #x_test = np.vstack( (x_test, x_img_buf))
+          #self.log( mname, "[{}] [{}] x_test[{}] x_img_buf[{}]".format(cnt,test_cnt,x_test.shape,x_img_buf.shape), level=2)
+           
+          #self.log( mname, "Image file [{}] doesn't exists!!!".format(imgpath), level=2)
+          cnt += 1
+        else:
+          #self.log( mname, "Image file [{}] doesn't exists!!!".format(imgpath), level=2)
+          file_missing += 1
+         
+        self.processing_cnt += 1
+        
+      #create y array as required
+      y_buf = np.array( y_labels, dtype='uint8')
+      y_buf = np.reshape( y_buf, (y_buf.size,1))
+      #print final dimensionf or x_train and y_train
+      self.log( mname, "x_buf [{}] y_buf [{}]".format(x_buf.shape,y_buf.shape), level=3)
+      #print( mname, "####x_test [{}] y_test [{}] y_buf[{}]".format(x_test.shape,y_test.shape,len(y_test_buf)))
+        
+      self.log( mname, "Process dataset [{}]".format(cnt), level=3)
+      self.log( mname, "File missing [{}]".format(file_missing), level=3)
+      self.log( mname, "Max image width[{}] heigth[{}]".format(self.df['w'].max(),self.df['h'].max()), level=3)
+      #print(self.df.head(10))
+      
+      # Normalize data.
+      x_buf = x_buf.astype('float32') / 255
+      
+      # Convert class vectors to binary class matrices.
+      y_buf = keras.utils.to_categorical(y_buf, self.no_classes)
 
+      yield (x_buf, y_buf)
+     
+   
+  def get_test_data(self):
+    #initialize all variables... 
+    mname = 'get_test_data'
+    n_img_w = self.img_width
+    n_img_h = self.img_heigth
+     
+    #x_train = np.zeros(( tot_cnt, n_img_w, n_img_h, 3), dtype='uint8')
+    x_img_buf = np.empty(( 1, n_img_w, n_img_h), dtype='uint8')
+    x_test = None
+    y_test = None
+    y_test_buf = []
+     
+    test_cnt = self.test_df.level.count()
+    if self.channels == 1:
+      x_test = np.zeros((test_cnt, n_img_w, n_img_h), dtype='uint8')
+    else:
+      x_test = np.zeros((test_cnt, n_img_w, n_img_h, self.channels), dtype='uint8')
+     
+    y_test = np.zeros((0,1),dtype='uint8')
+     
+    #loop in through dataframe. 
+    self.log( mname, "[{}] recs for testing.".format(test_cnt), level=3)
+     
+    cnt = 0
+    file_missing = 0
+    for i,rec in self.test_df.iterrows():
+      #if cnt >= tot_cnt:
+      #  break
+       
+      progress_sts = "%6d out of %6d" % (cnt,test_cnt)
+      sys.stdout.write(progress_sts)
+      sys.stdout.write("\b" * len(progress_sts)) # return to start of line, after '['
+      sys.stdout.flush()
+       
+      imgpath = self.img_dir_path + rec.image + self.img_filename_ext 
+      self.test_df.loc[i,'imgpath'] = imgpath
+       
+      if os.path.exists(imgpath):
+        myimg1 = myimg.myImg( imageid=str(i), config=self.myImg_config, path=imgpath) 
+         
+        #x_img_buf[ 0, :, :] = myimg1.getImage()
+        if self.channels == 1:
+          x_test[test_cnt,:,:] = myimg1.getImage()
+        else:
+          x_test[test_cnt,:,:,:] = myimg1.getImage()
+         
+        y_test_buf.append(rec.level)
+        #x_test = np.vstack( (x_test, x_img_buf))
+        #self.log( mname, "[{}] [{}] x_test[{}] x_img_buf[{}]".format(cnt,test_cnt,x_test.shape,x_img_buf.shape), level=2)
+         
+        #self.log( mname, "Image file [{}] doesn't exists!!!".format(imgpath), level=2)
+      else:
+        #self.log( mname, "Image file [{}] doesn't exists!!!".format(imgpath), level=2)
+        file_missing += 1
+       
+      self.processing_cnt += 1
+      cnt += 1
+      
+    #create y array as required
+    y_test = np.array( y_test_buf, dtype='uint8')
+    y_test = np.reshape( y_test, (y_test.size,1))
+    #print final dimensionf or x_train and y_train
+    self.log( mname, "x_test [{}] y_test [{}]".format(x_test.shape,y_test.shape), level=3)
+    #print( mname, "####x_test [{}] y_test [{}] y_buf[{}]".format(x_test.shape,y_test.shape,len(y_test_buf)))
+      
+    self.log( mname, "Process dataset [{}]".format(cnt), level=3)
+    self.log( mname, "File missing [{}]".format(file_missing), level=3)
+    self.log( mname, "Max image width[{}] heigth[{}]".format(self.df['w'].max(),self.df['h'].max()), level=3)
+    #print(self.df.head(10))
+    
+    return (x_test, y_test)
+     
+   
   def get_batch(self):
     #initialize all variables... 
     mname = 'get_batch'
@@ -434,10 +614,7 @@ class Data(object):
     x_img_buf = np.empty(( 1, n_img_w, n_img_h), dtype='uint8')
     x_train = None
     y_train = None
-    x_test = None
-    y_test = None
     y_train_buf = []
-    y_test_buf = []
      
     train_cnt = self.batch_size
     if self.channels == 1:
@@ -475,7 +652,7 @@ class Data(object):
         else:
           x_train[train_cnt,:,:,:] = myimg1.getImage()
         y_train_buf.append(rec.level)
-        print("********",rec.level)
+         
         #x_test = np.vstack( (x_test, x_img_buf))
         #self.log( mname, "[{}] [{}] x_test[{}] x_img_buf[{}]".format(cnt,test_cnt,x_test.shape,x_img_buf.shape), level=2)
          
@@ -492,7 +669,7 @@ class Data(object):
     y_train = np.reshape( y_train, (y_train.size,1))
     #print final dimensionf or x_train and y_train
     self.log( mname, "x_train [{}] y_train [{}]".format(x_train.shape,y_train.shape), level=3)
-    print( mname, "####x_train [{}] y_train [{}] y_buf[{}]".format(x_train.shape,y_train.shape,len(y_train_buf)))
+    #print( mname, "####x_train [{}] y_train [{}] y_buf[{}]".format(x_train.shape,y_train.shape,len(y_train_buf)))
       
     self.log( mname, "Process dataset [{}]".format(cnt), level=3)
     self.log( mname, "File missing [{}]".format(file_missing), level=3)
@@ -511,6 +688,10 @@ if __name__ == "__main__":
   #data.load_img_data()
    
   data.initiliaze_for_batch_load()
-  for test_cnt in range(3):
+  for train_cnt in range(2):
     x,y = data.get_batch()
-    print("test_cnt[{}] x[{}] y[{}]".format(test_cnt,x.shape,y.shape))
+    print("train_cnt[{}] x[{}] y[{}]".format(train_cnt,x.shape,y.shape))
+   
+  x,y = data.get_test_data()
+  print("test data x[{}] y[{}]".format(x.shape,y.shape))
+   
