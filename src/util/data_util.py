@@ -31,7 +31,7 @@ class Data(object):
       self.config = jutil.JsonUtil(jfilepath)
     else:
       self.config = config
-   
+     
     self.verbose = int(self.config.getElementValue(elem_path='/common/verbose'))
     #print("verbose[{}]".format(self.verbose)) 
     self.log( mname, "Initialized verbose[{}]".format(self.verbose), level=3)
@@ -684,9 +684,10 @@ if __name__ == "__main__":
   #prep_data()
   data = Data()
   #data.load_train_data()
-  #data.load_data_as_greyscale()
+  data.load_data_as_greyscale()
   #data.load_img_data()
    
+  ''' 
   data.initiliaze_for_batch_load()
   for train_cnt in range(2):
     x,y = data.get_batch()
@@ -694,4 +695,5 @@ if __name__ == "__main__":
    
   x,y = data.get_test_data()
   print("test data x[{}] y[{}]".format(x.shape,y.shape))
+  ''' 
    

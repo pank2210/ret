@@ -31,7 +31,7 @@ data = du.Data(jfilepath="../config/config.json")
 
 # Training parameters
 batch_size = 32  # orig paper trained all networks with batch_size=128
-epochs = 10
+epochs = 1
 data_augmentation = False
 num_classes = 5
 
