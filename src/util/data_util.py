@@ -437,7 +437,7 @@ class Data(object):
     n_img_h = self.img_heigth
     
     if self.channels == 1:
-      return np.zeros(( n_img_w, n_img_h), dtype='uint8').shape
+      return np.zeros(( n_img_w, n_img_h, 1), dtype='uint8').shape
     else:
       return np.zeros(( n_img_w, n_img_h, self.channels), dtype='uint8').shape
    
