@@ -55,7 +55,7 @@ subtract_pixel_mean = True
 # ResNet164 |27(18)| -----     | 94.07     | -----     | 94.54     | ---(---)
 # ResNet1001| (111)| -----     | 92.39     | -----     | 95.08+-.14| ---(---)
 # ---------------------------------------------------------------------------
-n = 3
+n = 2
 
 # Model version
 # Orig paper: version = 1 (ResNet v1), Improved ResNet: version = 2 (ResNet v2)
@@ -336,7 +336,7 @@ def resnet_v2(input_shape, depth, num_classes=10):
 
 
 if version == 2:
-    model = resnet_v2(input_shape=input_shape, depth=depth)
+    model = resnet_v2(input_shape=input_shape, depth=depth, num_classes=num_classes)
 else:
     model = resnet_v1(input_shape=input_shape, depth=depth)
 
@@ -374,8 +374,12 @@ H = model.fit_generator(
 	steps_per_epoch=NUM_TRAIN_IMAGES // BS,
 	validation_data=testGen,
 	validation_steps=NUM_TEST_IMAGES // BS,
-        epochs=5, verbose=1, workers=4,
-        callbacks=callbacks)
+        epochs=1, verbose=1
+        ,workers=1
+        ,max_queue_size=0
+        ,use_multiprocessing=False
+        )
+#        ,callbacks=callbacks)
 
 # make predictions on the testing images, finding the index of the
 # label with the corresponding largest predicted probability

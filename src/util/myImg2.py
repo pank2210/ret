@@ -202,7 +202,7 @@ class myImg(object):
          s_img_h_offset = 0
          calc_img_h = i_h
    
-      print("*****i_w[{}] i_h[{}] s_img_w_offset[{}] s_img_h_offset[{}] calc_img_w[{}] calc_img_h[{}] t_img_w_offset[{}] t_img_h_offset[{}] ".format(i_w,i_h,s_img_w_offset,s_img_h_offset,calc_img_w,calc_img_h,t_img_w_offset,t_img_h_offset))
+      #print("*****i_w[{}] i_h[{}] s_img_w_offset[{}] s_img_h_offset[{}] calc_img_w[{}] calc_img_h[{}] t_img_w_offset[{}] t_img_h_offset[{}] ".format(i_w,i_h,s_img_w_offset,s_img_h_offset,calc_img_w,calc_img_h,t_img_w_offset,t_img_h_offset))
        
       if self.channels == 3:
         croped_img_arr = np.zeros((n_img_w,n_img_h,self.channels),dtype='uint8') 
